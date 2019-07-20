@@ -84,6 +84,7 @@ workflow MutateReadsWithBAMSurgeon {
   if (defined(indel_variants)) {
     File indel_bam = select_first([SnpSortAndIndexBam.sorted_bam, input_bam])
     File indel_bam_index = select_first([SnpSortAndIndexBam.sorted_bam_index, input_bam_index])
+    String bam_suffix = if defined(snp_variants) then ".mutated.sorted.bam" else ".bam"
 
     call AddINDEL {
       input:
@@ -103,7 +104,8 @@ workflow MutateReadsWithBAMSurgeon {
 
     call SortAndIndexBam as IndelSortAndIndexBam {
       input:
-        input_bam = AddINDEL.output_bam
+        input_bam = AddINDEL.output_bam,
+        bam_suffix = bam_suffix
     }
   }
 
@@ -229,6 +231,7 @@ task SortAndIndexBam {
 
   # Command parameters
   File input_bam
+  String bam_suffix = ".bam"
 
   # Runtime parameters
   Int? mem_gb
@@ -239,7 +242,7 @@ task SortAndIndexBam {
   String gatk_path = "/gatk/gatk"
   Int disk_size = ceil(size(input_bam, "GB") * 4) + 20
 
-  String sorted_bam_name = basename(input_bam, '.bam') + ".mutated.sorted.bam"
+  String sorted_bam_name = basename(input_bam, bam_suffix) + ".mutated.sorted.bam"
   String bam_index_name = basename(sorted_bam_name, '.bam') + ".bai"
 
   command {
